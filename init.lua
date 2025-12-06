@@ -211,6 +211,9 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
+-- Open Oil File Explorer
+vim.keymap.set('n', '-', '<CMD>Oil<CR>', { desc = 'Open parent directory' })
+
 vim.api.nvim_create_autocmd('TermOpen', {
   desc = 'Open a tiny terminal.',
   group = vim.api.nvim_create_augroup('custom-term-open', { clear = true }),
@@ -1107,6 +1110,45 @@ require('lazy').setup({
     --    - Incremental selection: Included, see `:help nvim-treesitter-incremental-selection-mod`
     --    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
     --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
+  },
+
+  {
+    'stevearc/oil.nvim',
+    ---@module 'oil'
+    ---@type oil.SetupOpts
+    opts = {},
+    -- Optional dependencies
+    dependencies = { { 'nvim-mini/mini.icons', opts = {} } },
+    -- dependencies = { "nvim-tree/nvim-web-devicons" }, -- use if you prefer nvim-web-devicons
+    -- Lazy loading is not recommended because it is very tricky to make it work correctly in all situations.
+    lazy = false,
+    config = function()
+      require('oil').setup {
+        watch_for_changes = false,
+        keymaps = {
+          ['g?'] = { 'actions.show_help', mode = 'n' },
+          ['<CR>'] = 'actions.select',
+          ['<C-s>'] = { 'actions.select', opts = { vertical = true } },
+          ['<C-h>'] = { 'actions.select', opts = { horizontal = true } },
+          ['<C-t>'] = { 'actions.select', opts = { tab = true } },
+          ['<C-p>'] = 'actions.preview',
+          ['<C-c>'] = { 'actions.close', mode = 'n' },
+          ['<C-l>'] = 'actions.refresh',
+          ['-'] = { 'actions.parent', mode = 'n' },
+          ['_'] = { 'actions.open_cwd', mode = 'n' },
+          ['`'] = { 'actions.cd', mode = 'n' },
+          ['~'] = { 'actions.cd', opts = { scope = 'tab' }, mode = 'n' },
+          ['gs'] = { 'actions.change_sort', mode = 'n' },
+          ['gx'] = 'actions.open_external',
+          ['g.'] = { 'actions.toggle_hidden', mode = 'n' },
+          ['g\\'] = { 'actions.toggle_trash', mode = 'n' },
+        },
+        view_options = {
+          -- Show files and directories that start with "."
+          show_hidden = false,
+        },
+      }
+    end,
   },
 
   -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
