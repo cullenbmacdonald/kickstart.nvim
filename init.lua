@@ -271,6 +271,15 @@ rtp:prepend(lazypath)
 --  To update plugins you can run
 --    :Lazy update
 --
+-- Filter out pyright diagnostics (ruff handles linting)
+vim.lsp.handlers['textDocument/publishDiagnostics'] = function(_, result, ctx, config)
+  local client = vim.lsp.get_client_by_id(ctx.client_id)
+  if client and client.name == 'pyright' then
+    return
+  end
+  vim.lsp.diagnostic.on_publish_diagnostics(_, result, ctx, config)
+end
+
 -- NOTE: Here is where you install your plugins.
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
@@ -763,14 +772,16 @@ require('lazy').setup({
         --},
 
         -- clangd = {},
+        ruff = {},
         pyright = {
           settings = {
+            pyright = {
+              disableOrganizeImports = true,
+            },
             python = {
               analysis = {
-                typeCheckingMode = 'basic', -- 'off', 'basic', or 'strict'
                 autoSearchPaths = true,
                 useLibraryCodeForTypes = true,
-                diagnosticMode = 'workspace',
                 autoImportCompletions = true,
               },
             },
@@ -839,8 +850,7 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
-        'isort', -- Python import sorter
-        'black', -- Python formatter
+        'ruff', -- Python linter and formatter
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -894,7 +904,7 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
-        python = { 'isort', 'black' },
+        python = { 'ruff_format', 'ruff_organize_imports' },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
