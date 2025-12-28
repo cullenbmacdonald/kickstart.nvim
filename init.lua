@@ -91,7 +91,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.o`
@@ -727,6 +727,16 @@ require('lazy').setup({
       local lspconfig = require 'lspconfig'
       local servers = {
         -- clangd = {},
+        vtsls = {
+          settings = {
+            vtsls = {
+              tsserver = {
+                globalPlugins = {},
+              },
+            },
+          },
+          filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' },
+        },
         gopls = {
           settings = {
             gopls = {
@@ -910,7 +920,6 @@ require('lazy').setup({
       })
     end,
   },
-
   { -- Autoformat
     'stevearc/conform.nvim',
     event = { 'BufWritePre' },
@@ -1064,7 +1073,7 @@ require('lazy').setup({
       require('solarized-osaka').setup {
         -- your configuration comes here
         -- or leave it empty to use the default settings
-        transparent = false, -- Enable this to disable setting the background color
+        transparent = true, -- Enable this to disable setting the background color
         terminal_colors = true, -- Configure the colors used when opening a `:terminal` in [Neovim](https://github.com/neovim/neovim)
         styles = {
           -- Style to be applied to different syntax groups
@@ -1093,8 +1102,8 @@ require('lazy').setup({
         ---@param highlights Highlights
         ---@param colors ColorScheme
         on_highlights = function(highlights, colors) end,
-        vim.cmd [[colorscheme solarized-osaka]],
       }
+      vim.cmd [[colorscheme solarized-osaka]]
     end,
   },
 
