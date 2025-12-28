@@ -104,6 +104,12 @@ vim.o.number = true
 --  Experiment for yourself to see if you like it!
 -- vim.o.relativenumber = true
 
+-- Default indentation settings (2 spaces, no tabs)
+vim.o.tabstop = 2
+vim.o.shiftwidth = 2
+vim.o.softtabstop = 2
+vim.o.expandtab = true
+
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
 
@@ -790,11 +796,34 @@ require('lazy').setup({
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
-        -- Some languages (like typescript) have entire language plugins that can be useful:
-        --    https://github.com/pmizio/typescript-tools.nvim
-        --
-        -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
+        -- TypeScript/JavaScript/Vue
+        vtsls = {
+          filetypes = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact', 'vue' },
+          settings = {
+            vtsls = {
+              tsserver = {
+                globalPlugins = {
+                  {
+                    name = '@vue/typescript-plugin',
+                    location = vim.fn.stdpath 'data' .. '/mason/packages/vue-language-server/node_modules/@vue/language-server/node_modules/@vue/typescript-plugin',
+                    languages = { 'vue' },
+                    configNamespace = 'typescript',
+                    enableForWorkspaceTypeScriptVersions = true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        -- Vue language server (works with vtsls in hybrid mode)
+        vue_ls = {
+          filetypes = { 'vue' },
+          init_options = {
+            vue = {
+              hybridMode = true,
+            },
+          },
+        },
         --
 
         lua_ls = {
@@ -845,29 +874,40 @@ require('lazy').setup({
       -- `mason` had to be setup earlier: to configure its options see the
       -- `dependencies` table for `nvim-lspconfig` above.
       --
-      -- You can add other tools here that you want Mason to install
-      -- for you, so that they are available from within Neovim.
-      local ensure_installed = vim.tbl_keys(servers or {})
-      vim.list_extend(ensure_installed, {
-        'stylua', -- Used to format Lua code
-        'ruff', -- Python linter and formatter
-      })
-      require('mason-tool-installer').setup { ensure_installed = ensure_installed }
+      -- Non-LSP tools for Mason to install
+      require('mason-tool-installer').setup {
+        ensure_installed = {
+          'stylua', -- Used to format Lua code
+          'ruff', -- Python linter and formatter
+          'prettierd', -- Fast prettier daemon for JS/TS/Vue formatting
+        },
+      }
 
+      -- LSP servers - mason-lspconfig handles the name mapping
       require('mason-lspconfig').setup {
-        ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
+        ensure_installed = vim.tbl_keys(servers or {}),
         automatic_installation = false,
         handlers = {
           function(server_name)
             local server = servers[server_name] or {}
-            -- This handles overriding only values explicitly passed
-            -- by the server configuration above. Useful when disabling
-            -- certain features of an LSP (for example, turning off formatting for ts_ls)
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
             require('lspconfig')[server_name].setup(server)
           end,
         },
       }
+
+      -- Force vtsls to attach to Vue files (filetypes override doesn't work reliably)
+      vim.api.nvim_create_autocmd('FileType', {
+        pattern = 'vue',
+        callback = function(args)
+          vim.lsp.start({
+            name = 'vtsls',
+            cmd = { 'vtsls', '--stdio' },
+            root_dir = vim.fs.root(args.buf, { 'package.json', 'tsconfig.json', 'jsconfig.json', '.git' }),
+            settings = servers['vtsls'].settings,
+          })
+        end,
+      })
     end,
   },
 
@@ -903,11 +943,15 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
-        -- Conform can also run multiple formatters sequentially
         python = { 'ruff_format', 'ruff_organize_imports' },
-        --
-        -- You can use 'stop_after_first' to run the first available formatter from the list
-        -- javascript = { "prettierd", "prettier", stop_after_first = true },
+        javascript = { 'prettierd' },
+        typescript = { 'prettierd' },
+        javascriptreact = { 'prettierd' },
+        typescriptreact = { 'prettierd' },
+        vue = { 'prettierd' },
+        json = { 'prettierd' },
+        css = { 'prettierd' },
+        html = { 'prettierd' },
       },
     },
   },
@@ -1110,6 +1154,12 @@ require('lazy').setup({
         'c',
         'diff',
         'html',
+        'css',
+        'javascript',
+        'typescript',
+        'tsx',
+        'vue',
+        'json',
         'lua',
         'luadoc',
         'markdown',
@@ -1127,7 +1177,7 @@ require('lazy').setup({
         --  the list of additional_vim_regex_highlighting and disabled languages for indent.
         additional_vim_regex_highlighting = { 'ruby' },
       },
-      indent = { enable = true, disable = { 'ruby' } },
+      indent = { enable = true, disable = { 'ruby', 'vue', 'html' } },
     },
     -- There are additional nvim-treesitter modules that you can use to interact
     -- with nvim-treesitter. You should go explore a few and see what interests you:
